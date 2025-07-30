@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analizator Faktur</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- pdf.js (only the core library) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" defer></script>
+  <!-- xlsx for reading/writing Excel files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <!-- Main application script -->
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>Analizator Faktur</h1>
+    <p>Wgraj plik PDF z fakturą oraz szablon Excel z wytycznymi, aby wygenerować opis faktury i numer MPK.</p>
+  </header>
+  <main>
+    <div class="input-section">
+      <label>Wytyczne (Excel):
+        <input type="file" id="guidelinesFile" accept=".xlsx,.xls">
+      </label>
+      <label>Faktura (PDF):
+        <input type="file" id="invoiceFile" accept="application/pdf">
+      </label>
+      <button id="processBtn">Przetwarzaj fakturę</button>
+    </div>
+    <div id="output" class="output-section hidden"></div>
+    <div id="error" class="error-section hidden"></div>
+    <div class="download-section hidden" id="downloadSection">
+      <button id="downloadBtn">Pobierz plik Excel z raportem</button>
+    </div>
+  </main>
+  <footer>
+    <p>© 2025 Analizator Faktur – aplikacja demonstracyjna.</p>
+  </footer>
+</body>
+</html>

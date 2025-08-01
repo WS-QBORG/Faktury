@@ -133,46 +133,40 @@ async function processInvoice(pdfFile) {
   hideError();
   outputDiv.classList.add('hidden');
   try {
-   let fullText = '';
+    let fullText = '';
+    let arrayBuffer = null;
 
-if (pdfFile.type === 'application/pdf') {
-  const arrayBuffer = await pdfFile.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const strings = content.items.map((item) => item.str);
-    fullText += strings.join('\n') + '\n';
-  }
-} else if (pdfFile.type.startsWith('image/')) {
-  fullText = await extractTextFromImage(pdfFile);
-} else {
-  showError('Nieobsługiwany format pliku. Tylko PDF lub obrazy JPG/PNG.');
-  return;
-}
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const strings = content.items.map((item) => item.str);
-      fullText += strings.join('\n') + '\n';
+    if (pdfFile.type === 'application/pdf') {
+      arrayBuffer = await pdfFile.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const strings = content.items.map((item) => item.str);
+        fullText += strings.join('\n') + '\n';
+      }
+    } else if (pdfFile.type.startsWith('image/')) {
+      fullText = await extractTextFromImage(pdfFile);
+    } else {
+      showError('Nieobsługiwany format pliku. Tylko PDF lub obrazy JPG/PNG.');
+      return;
     }
-    // Extract vendor, buyer NIP and invoice number
+
     const vendor = extractVendor(fullText);
-    console.log('✅ Z PDF wykryto vendor:', vendor); // <-- przenieś tu
+    console.log('✅ Z faktury wykryto vendor:', vendor);
+    console.log('🧾 Treść faktury:', fullText);
+
     const nipBuyer = extractNIPBuyer(fullText);
     const invoiceNumber = extractInvoiceNumber(fullText);
-    console.log('🧾 Treść faktury PDF:', fullText);  // <-- i to też
-    // Determine MPK and group
+
     const mapping = findVendorMappingFuzzy(vendor);
     let mpk = mapping.mpk || 'MPK000';
     let group = mapping.group || '0/0';
-    // Determine next sequential number for this mpk and group
+
     let nextNumberObj = generateNextNumber(mpk, group);
-    // Compose label for the invoice (Etykieta)
     const numberFormatted = String(nextNumberObj.value).padStart(3, '0') + '/' + nextNumberObj.year;
     const etykieta = `${group};${mpk};${numberFormatted}`;
-    // Update dataset and UI
+
     const record = {
       'Nazwa kontrahenta': vendor,
       'NIP nabywcy': nipBuyer,
@@ -182,17 +176,42 @@ if (pdfFile.type === 'application/pdf') {
       'Numer kolejny': numberFormatted,
       'Etykieta': etykieta,
     };
+
     dataset.push(record);
     displayOutput(record);
-    // Create modified PDF with label in header
-    const labelDisplay = `${group} – ${mpk} – ${numberFormatted}`;
-    lastLabel = labelDisplay;
-    modifiedPdfBytes = await createModifiedPdf(arrayBuffer, labelDisplay);
+
+    lastLabel = `${group} – ${mpk} – ${numberFormatted}`;
+
+    if (arrayBuffer) {
+      modifiedPdfBytes = await createModifiedPdf(arrayBuffer, lastLabel);
+    } else {
+      modifiedPdfBytes = null; // brak zmodyfikowanego pliku
+    }
+
     downloadSection.classList.remove('hidden');
   } catch (err) {
     showError('Błąd podczas przetwarzania faktury: ' + err.message);
   }
 }
+
+
+async function extractTextFromImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const { data: { text } } = await Tesseract.recognize(reader.result, 'pol');
+        resolve(text);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Błąd wczytywania obrazu.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+
 
 function extractVendor(text) {
   // Try to extract after 'Sprzedawca:' up to next newline and before 'NIP'

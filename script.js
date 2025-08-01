@@ -133,9 +133,24 @@ async function processInvoice(pdfFile) {
   hideError();
   outputDiv.classList.add('hidden');
   try {
-    const arrayBuffer = await pdfFile.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
+   let fullText = '';
+
+if (pdfFile.type === 'application/pdf') {
+  const arrayBuffer = await pdfFile.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map((item) => item.str);
+    fullText += strings.join('\n') + '\n';
+  }
+} else if (pdfFile.type.startsWith('image/')) {
+  fullText = await extractTextFromImage(pdfFile);
+} else {
+  showError('Nieobsługiwany format pliku. Tylko PDF lub obrazy JPG/PNG.');
+  return;
+}
+
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();

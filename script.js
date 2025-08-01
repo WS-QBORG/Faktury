@@ -147,7 +147,7 @@ async function processInvoice(pdfFile) {
     const nipBuyer = extractNIPBuyer(fullText);
     const invoiceNumber = extractInvoiceNumber(fullText);
     // Determine MPK and group
-    const mapping = findVendorMapping(vendor);
+    const mapping = findVendorMappingFuzzy(vendor);
     let mpk = mapping.mpk || 'MPK000';
     let group = mapping.group || '0/0';
     // Determine next sequential number for this mpk and group
@@ -225,11 +225,17 @@ function extractInvoiceNumber(text) {
   return match ? match[1] : 'Nieznany';
 }
 
-function findVendorMapping(vendor) {
-  if (!vendor) return { mpk: '', group: '' };
-  const key = vendor.toLowerCase().trim();
-  return vendorMapping[key] || { mpk: '', group: '' };
+function findVendorMappingFuzzy(rawVendor) {
+  const simplified = rawVendor.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const key in vendorMapping) {
+    const simplifiedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (simplified.includes(simplifiedKey) || simplifiedKey.includes(simplified)) {
+      return vendorMapping[key];
+    }
+  }
+  return { mpk: 'MPK000', group: '0/0' };
 }
+
 
 function generateNextNumber(mpk, group) {
   const now = new Date();
@@ -272,6 +278,7 @@ function displayOutput(record) {
   table.appendChild(dataRow);
   outputDiv.appendChild(table);
 }
+
 
 /**
  * Create a modified copy of the original PDF with a prominent label
@@ -327,3 +334,8 @@ function hideError() {
   errorDiv.textContent = '';
   errorDiv.classList.add('hidden');
 }
+
+// DEBUG
+
+console.log('Z PDF wykryto vendor:', vendor);
+console.log('Treść PDF:', fullText);

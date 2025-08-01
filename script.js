@@ -144,8 +144,10 @@ async function processInvoice(pdfFile) {
     }
     // Extract vendor, buyer NIP and invoice number
     const vendor = extractVendor(fullText);
+    console.log('✅ Z PDF wykryto vendor:', vendor); // <-- przenieś tu
     const nipBuyer = extractNIPBuyer(fullText);
     const invoiceNumber = extractInvoiceNumber(fullText);
+    console.log('🧾 Treść faktury PDF:', fullText);  // <-- i to też
     // Determine MPK and group
     const mapping = findVendorMappingFuzzy(vendor);
     let mpk = mapping.mpk || 'MPK000';
@@ -230,9 +232,11 @@ function findVendorMappingFuzzy(rawVendor) {
   for (const key in vendorMapping) {
     const simplifiedKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (simplified.includes(simplifiedKey) || simplifiedKey.includes(simplified)) {
+      console.log(`✅ Dopasowano "${rawVendor}" do wzorca "${key}"`);
       return vendorMapping[key];
     }
   }
+  console.warn(`❌ Nie znaleziono dopasowania dla: "${rawVendor}"`);
   return { mpk: 'MPK000', group: '0/0' };
 }
 
@@ -335,7 +339,4 @@ function hideError() {
   errorDiv.classList.add('hidden');
 }
 
-// DEBUG
 
-console.log('Z PDF wykryto vendor:', vendor);
-console.log('Treść PDF:', fullText);
